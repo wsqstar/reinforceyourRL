@@ -9,6 +9,9 @@
 ## 编程
 - 看文献 尝试复现
 - 莫凡python教程: https://www.bilibili.com/video/BV13W411Y75P/
+### Github
+- https://github.com/aikorea/awesome-rl
+- https://github.com/dennybritz/reinforcement-learning
 
 ## 论坛
 - http://www.deeprlhub.com/
