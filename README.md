@@ -1,6 +1,6 @@
 # reinforceyourRL
 强化你的强化学习
-
+theme: jekyll-theme-minimal
 
 ## 数学基础
 - https://www.bilibili.com/video/BV1sd4y167NS/
