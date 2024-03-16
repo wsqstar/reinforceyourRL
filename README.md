@@ -28,3 +28,5 @@
 ## 其他推荐
 - https://blog.csdn.net/CoderPai/article/details/80174113
 - https://www.bilibili.com/video/BV1h64y1c7Fo/
+### Q-Learning
+- https://blog.csdn.net/itplus/article/details/9361915
