@@ -16,8 +16,11 @@
   - numpy pandas 必须学习 数据处理
   - matplotlib 可以学习 展示误差曲线
   - tensorflow 可以学习,后面实现神经网络与强化学习结合的时候用到
-  - openai gym 官网 可学,提供了很多线程的模拟环境
+  - openai gym 官网 可学,提供了很多现成的模拟环境
     - 可以很好的替代tkinter 科学 用它来编写模拟环境
+
+> 关于模拟环境 没有必要直接学 还是用gpt 或者 gym实现
+
 - 看文献 尝试复现
 ### Github
 - https://github.com/aikorea/awesome-rl
