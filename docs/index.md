@@ -5,9 +5,8 @@
 > 数学基础看一点就可以去编写代码! 应用不太需要数学基础,创新才需要.
 
 ## 数学基础
-
-- https://www.bilibili.com/video/BV1sd4y167NS/
-  - 对应的mooc(主要是问答,视频还是在B站) https://www.icourse163.org/course/XHUN-1470436188
+- [强化学习的数学原理](https://www.bilibili.com/video/BV1sd4y167NS/)
+  - 对应的mooc(主要是问答,视频还是在B站) [https://www.icourse163.org/course/XHUN-1470436188](https://www.icourse163.org/course/XHUN-1470436188)
  
 ## 编程
 
