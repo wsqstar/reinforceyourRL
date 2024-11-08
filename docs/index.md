@@ -7,6 +7,7 @@
 ## 数学基础
 - [强化学习的数学原理](https://www.bilibili.com/video/BV1sd4y167NS/)
   - 对应的mooc(主要是问答,视频还是在B站) [https://www.icourse163.org/course/XHUN-1470436188](https://www.icourse163.org/course/XHUN-1470436188)
+- 其他教程欢迎推荐。
  
 ## 编程
 ### 编程基础
@@ -31,8 +32,8 @@
 
 - 看文献 尝试复现
 ### Github
-- https://github.com/aikorea/awesome-rl
-- https://github.com/dennybritz/reinforcement-learning
+- [一个不错的强化学习资料汇总（已经停更）](https://github.com/aikorea/awesome-rl)
+- [流行的强化学习算法的代码、练习和解决方案(已经停更)](https://github.com/dennybritz/reinforcement-learning)
 
 ## 论坛
 - http://www.deeprlhub.com/
