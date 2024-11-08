@@ -1,0 +1,7 @@
+site_name: RL Study
+nav:
+  - Home: index.md
+  - About | 关于: about.md
+  # - Beginner: reading/nlp1.md
+  # - Suggestions: reading/suggestions.md
+theme: readthedocs
