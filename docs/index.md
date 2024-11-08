@@ -1,4 +1,4 @@
-# Welcome to RP Study
+# Welcome to RL Study
 
 强化你的强化学习
 
