@@ -2,26 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
     </url>
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/DRL/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
+    </url>
+    <url>
+         <loc>https://www.gistudy.net/reinforceyourRL/MORL/</loc>
+         <lastmod>2026-10-12</lastmod>
     </url>
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/Reinforcement%20Learning/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
     </url>
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/Stable%20Baseline%203/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
     </url>
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/reinforceyourRL/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
     </url>
     <url>
          <loc>https://www.gistudy.net/reinforceyourRL/concepts/MDP/</loc>
-         <lastmod>2026-09-05</lastmod>
+         <lastmod>2026-10-12</lastmod>
     </url>
 </urlset>
