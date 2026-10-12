@@ -1,0 +1,748 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="从 LLM 的 padding attention mask 出发，说明 RLHF/PPO/GRPO 中 attention mask 与 completion/loss mask 的分工，以及迷宫等环境中用 logits mask 屏蔽非法动作的做法。">
+      
+      
+      
+        <link rel="canonical" href="https://www.gistudy.net/reinforceyourRL/masks-in-rl/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>强化学习里的 mask 是如何实现的？ - RL Study</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mask" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="RL Study" class="md-header__button md-logo" aria-label="RL Study" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RL Study
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              强化学习里的 mask 是如何实现的？
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="RL Study" class="md-nav__button md-logo" aria-label="RL Study" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RL Study
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Reinforcement%20Learning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    强化学习总纲
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/MDP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    马尔可夫决策过程
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DRL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    深度强化学习
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MORL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    多目标强化学习
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Stable%20Baseline%203/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stable Baselines3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reinforceyourRL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    项目笔记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#llm-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 强化学习：两层 mask
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LLM 强化学习：两层 mask">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attention-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        前向仍然用 attention mask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rl-loss-completion-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RL 的 loss 用 completion mask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一个对齐的具体例子
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reward-gae-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reward 和 GAE 也靠 mask
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-mask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        迷宫这类环境：输出端的 action mask
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="迷宫这类环境：输出端的 action mask">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ppo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PPO 里的一个坑
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        硬约束还是软约束
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="mask">强化学习里的 mask 是如何实现的？</h1>
+<p>一个 batch 中的句子通常长短不一。为了组成整齐的张量，短句子末尾会补上 <code>&lt;PAD&gt;</code>，同时用 attention mask 标注哪些位置是真实 token、哪些是 padding：真实 token 位置的 mask 值为 1，padding 位置为 0，模型计算 Attention 时据此忽略 padding。</p>
+<p>这是 LLM tokenizer 层面的方案。到了强化学习里，mask 不止这一个，通常是几个层次的 mask 协同工作：</p>
+<ul>
+<li><strong>attention mask</strong>：给 Transformer 用，告诉 Attention 哪些位置是真实 token，哪些是 <code>&lt;PAD&gt;</code>。</li>
+<li><strong>completion mask / loss mask</strong>：给 RL 的 loss、reward、KL、GAE、value loss 用，告诉优化器哪些 token 是模型生成的动作，需要计算策略梯度。</li>
+<li><strong>action mask（logits mask）</strong>：给策略输出用，告诉采样器哪些动作在当前状态合法，比如迷宫里不能撞墙。</li>
+</ul>
+<p>简单说：attention mask 管“模型能不能看见”，loss mask 管“loss 要不要算”，action mask 管“这个动作能不能选”。</p>
+<h2 id="llm-mask">LLM 强化学习：两层 mask</h2>
+<h3 id="attention-mask">前向仍然用 attention mask</h3>
+<p>RLHF / PPO / GRPO 里，Policy、Reference、Critic 前向时都传 tokenizer 产生的 <code>attention_mask</code>：</p>
+<pre><code class="language-python">logits = policy(input_ids, attention_mask=attention_mask).logits
+</code></pre>
+<p>这样 <code>&lt;PAD&gt;</code> 不参与 Attention，也不会污染 hidden states。如果是 left padding，还要正确构造 <code>position_ids</code>，否则 pad 会占位置、导致位置编码错乱：</p>
+<pre><code class="language-python">position_ids = attention_mask.cumsum(-1) - 1
+position_ids.masked_fill_(attention_mask == 0, 0)
+</code></pre>
+<h3 id="rl-loss-completion-mask">RL 的 loss 用 completion mask</h3>
+<p>LLM 的 RL 通常只把 response token 当作动作，prompt 是条件，不算策略梯度。所以在 <code>attention_mask</code> 之外还要构造一层：</p>
+<pre><code class="language-python">input_ids       = [prompt_ids, response_ids, pad...]
+attention_mask  = [1,1,1, 1,1, 0,0]   # 真实 token 为 1，pad 为 0
+completion_mask = [0,0,0, 1,1, 0,0]   # prompt 为 0，response 为 1
+action_mask     = completion_mask * attention_mask
+</code></pre>
+<p>计算 logprob 时要注意 mask 也要跟着 shift，因为位置 $t$ 的 logits 预测的是 $t+1$：</p>
+<pre><code class="language-python">shift_logits = logits[:, :-1]
+shift_labels = input_ids[:, 1:]
+
+logp = log_softmax(shift_logits, dim=-1).gather(
+    -1, shift_labels.unsqueeze(-1)
+).squeeze(-1)
+
+loss_mask = action_mask[:, 1:]
+</code></pre>
+<p>然后 PPO / GRPO 的 policy loss、KL penalty、value loss 都用同一个 mask 做 masked mean，padding 和 prompt 都不会进入策略梯度：</p>
+<pre><code class="language-python">ratio = (new_logp - old_logp).exp()
+pg_loss = -torch.min(
+    ratio * advantage,
+    torch.clamp(ratio, 1 - eps, 1 + eps) * advantage
+)
+pg_loss = (pg_loss * loss_mask).sum() / loss_mask.sum().clamp(min=1)
+</code></pre>
+<h3 id="_1">一个对齐的具体例子</h3>
+<p>假设 <code>prompt = [A, B, C]</code>，<code>response = [D, E]</code>，pad 为 0：</p>
+<pre><code class="language-text">input_ids       = [A, B, C, D, E, 0, 0]
+attention_mask  = [1, 1, 1, 1, 1, 0, 0]
+completion_mask = [0, 0, 0, 1, 1, 0, 0]
+</code></pre>
+<p>计算 next-token logprob 时对齐到 logits：</p>
+<pre><code class="language-text">logits[0] 预测 B
+logits[1] 预测 C
+logits[2] 预测 D    &lt;- 要算
+logits[3] 预测 E    &lt;- 要算
+logits[4] 预测 pad
+</code></pre>
+<p>对应的 <code>loss_mask = completion_mask[:, 1:] = [0, 0, 1, 1, 0, 0]</code>，只有预测 D、E 的 logprob 进入 loss。</p>
+<h3 id="reward-gae-mask">Reward 和 GAE 也靠 mask</h3>
+<p>序列级 reward 通常只给最后一个有效 response token：</p>
+<pre><code class="language-python">last_idx = attention_mask.sum(-1) - 1
+seq_reward = reward_model(...)[torch.arange(B), last_idx]
+</code></pre>
+<p>KL 作为逐 token penalty 加到 reward 上，GAE 递推时用 mask 截断：mask 为 0 的位置直接重置，避免 pad 或 prompt 的 value 污染 advantage。</p>
+<pre><code class="language-python">for t in reversed(range(response_len)):
+    active = loss_mask[:, t]
+    delta = token_reward[:, t] + gamma * next_value * active - value[:, t]
+    gae = delta + gamma * lam * gae * active
+    advantage[:, t] = gae
+    next_value = value[:, t]
+</code></pre>
+<p>多轮对话里还要区分 role，通常只对 assistant 生成的 token 算 loss：<code>loss_mask = (role_ids == ASSISTANT) &amp; attention_mask</code>。做 sequence packing 时还需要 block-diagonal attention 或 <code>cu_seqlens</code>，防止不同样本互相注意。</p>
+<p>不同框架命名不同：TRL 的 PPO 常用 <code>attention_mask</code> 再切出 response 部分；OpenRLHF / veRL 常叫 <code>action_mask</code> 或 <code>response_mask</code>；GRPO 和 DPO 常叫 <code>completion_mask</code>。</p>
+<h2 id="action-mask">迷宫这类环境：输出端的 action mask</h2>
+<p>另一个常见问题是：迷宫里“不能撞墙”怎么实现？注意不能用 attention mask 来做这件事。attention mask 管的是输入序列里哪些位置是真实 token，控制 Transformer 内部“能不能看见某个输入位置”；而“不能撞墙”是输出动作空间上的约束，要用 logits 上的 action mask。</p>
+<p>假设动作空间是上、下、左、右四个离散动作，环境显式给出当前合法动作：</p>
+<pre><code class="language-python">valid_actions = [True, False, True, True]  # 比如“下”会撞墙
+logits = policy(state)                     # shape [B, 4]
+
+mask = torch.tensor(valid_actions)         # 1 合法，0 非法
+masked_logits = logits.masked_fill(~mask, -1e9)
+
+dist = Categorical(logits=masked_logits)
+action = dist.sample()
+logp = dist.log_prob(action)
+</code></pre>
+<p>等价公式：</p>
+<p>$$
+\tilde z_a =
+\begin{cases}
+z_a, &amp; m_a = 1 \
+-\infty, &amp; m_a = 0
+\end{cases}
+\qquad
+\pi(a|s) = \mathrm{softmax}(\tilde z)
+$$</p>
+<p>非法动作概率为 0，采样永远选不到，策略梯度也不会流向非法动作。</p>
+<p>如果策略是 LLM、动作是 token，可以把动作定义成特殊 token（如 <code>&lt;UP&gt;</code>、<code>&lt;DOWN&gt;</code>），每步根据环境状态构造词表级 mask，只允许合法动作 token 通过：</p>
+<pre><code class="language-python">vocab_mask = torch.zeros(B, vocab_size, dtype=torch.bool)
+for b, valid in enumerate(valid_actions_batch):
+    for act in valid:
+        vocab_mask[b, ACTION_IDS[act]] = True
+
+logits = logits.masked_fill(~vocab_mask, -1e9)
+</code></pre>
+<p>如果动作是自然语言短语，会涉及多 token，更稳的做法是把动作压缩成单个特殊 token，或者用 <code>PrefixConstrainedLogitsProcessor</code> 一类的前缀约束解码。</p>
+<h3 id="ppo">PPO 里的一个坑</h3>
+<p>PPO 的重要性比值是</p>
+<p>$$
+r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}
+$$</p>
+<p>所以旧策略和新策略必须用同一个 action mask：</p>
+<pre><code class="language-python">old_logp = log_softmax(masked_logits_old, -1).gather(actions)
+new_logp = log_softmax(masked_logits_new, -1).gather(actions)
+ratio = (new_logp - old_logp).exp()
+</code></pre>
+<p>如果旧策略没 mask、新策略 mask 了，ratio 会错，训练会不稳定。另外 mask 由环境状态决定、每步都可能变，所以 batch 里每一步都要保存对应的 <code>action_mask</code>。</p>
+<h3 id="_2">硬约束还是软约束</h3>
+<p>action mask 是硬约束：非法动作概率直接置 0，适合迷宫这类规则明确、要求安全探索的环境。另一种是软约束：撞墙给负 reward，让模型自己学，但探索阶段仍会撞墙。实际常用的是两者一起用：mask 保证不选非法动作，reward 让模型学会更快到终点。</p>
+<h2 id="_3">总结</h2>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>作用位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>attention_mask</code></td>
+<td>Transformer 输入</td>
+<td>屏蔽 padding，控制 token 间可见性</td>
+</tr>
+<tr>
+<td><code>completion_mask</code> / <code>loss_mask</code></td>
+<td>RL loss</td>
+<td>标记哪些 token 算策略梯度、reward、GAE</td>
+</tr>
+<tr>
+<td><code>action_mask</code> / logits mask</td>
+<td>策略输出</td>
+<td>屏蔽非法动作，控制动作选择</td>
+</tr>
+</tbody>
+</table>
+<p>一句话：RL 中 <code>attention_mask</code> 继续负责模型内部忽略 padding；<code>completion_mask</code> 负责告诉优化器哪些 token 是要训练的动作；而“不能撞墙”这类约束，要在每一步根据环境状态构造 <code>action_mask</code>，在输出 logits 上把非法动作置为 $-\infty$。</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
